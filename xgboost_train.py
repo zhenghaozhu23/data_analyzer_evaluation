@@ -5,7 +5,6 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
-import re
 
 # ================================
 # 1. 读取 CSV 文件
@@ -28,26 +27,24 @@ y = df["riscode"].map({10000: 1, 90000: 0})
 object_cols = X.select_dtypes(include=["object"]).columns
 print(f"检测到 {len(object_cols)} 个非数值列，将进行独热编码: {list(object_cols)[:10]}...")
 
+# 转换为哑变量
 X = pd.get_dummies(X, drop_first=True)
 
-# ================================
-# ✅ 4. 清洗列名，防止 XGBoost 报错
-# ================================
-def clean_column_name(name: str) -> str:
-    """将列名中的非法字符（[ ] < > , : 等）替换为下划线"""
-    return re.sub(r"[^A-Za-z0-9_]", "_", name)
+# 移除有缺失值或异常值的列
+X = X.replace([np.inf, -np.inf], np.nan).fillna(0)
 
-X.columns = [clean_column_name(c) for c in X.columns]
+# 确保输入为 float32（避免 xgboost pandas dtype bug）
+X = X.astype(np.float32)
 
 # ================================
-# 5. 划分训练集与测试集
+# 4. 划分训练集与测试集
 # ================================
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
 # ================================
-# 6. 训练 XGBoost 分类器
+# 5. 训练 XGBoost 分类器
 # ================================
 model = XGBClassifier(
     n_estimators=200,
@@ -61,12 +58,13 @@ model = XGBClassifier(
     tree_method="hist"
 )
 
-model.fit(X_train, y_train)
+# ✅ 关键：转换为 numpy 数组以彻底避免 pandas 兼容性问题
+model.fit(X_train.to_numpy(), y_train.to_numpy())
 
 # ================================
-# 7. 模型预测与评估
+# 6. 模型预测与评估
 # ================================
-y_pred = model.predict(X_test)
+y_pred = model.predict(X_test.to_numpy())
 
 acc = accuracy_score(y_test, y_pred)
 print(f"\n✅ 准确率(Accuracy): {acc:.4f}")
@@ -79,7 +77,7 @@ print("\n分类报告 (Classification Report):")
 print(classification_report(y_test, y_pred, digits=4))
 
 # ================================
-# 8. 可视化混淆矩阵
+# 7. 可视化混淆矩阵
 # ================================
 plt.figure(figsize=(6, 5))
 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -91,7 +89,7 @@ plt.ylabel("True Label")
 plt.show()
 
 # ================================
-# 9. 显示前15个最重要的特征
+# 8. 可选：显示前15个最重要的特征
 # ================================
 plt.figure(figsize=(10, 6))
 importances = model.feature_importances_
