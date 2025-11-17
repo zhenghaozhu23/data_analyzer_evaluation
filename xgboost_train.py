@@ -9,17 +9,17 @@ import seaborn as sns
 # ================================
 # 1. 读取 CSV 文件
 # ================================
-file_path = "/home/zhuzhenghao/all_combined_balancedRiscode_6000.csv"
+file_path = "/home/zhuzhenghao/all_combined_balancedCurm2mob12_8000.csv"
 df = pd.read_csv(file_path)
 
 # ================================
 # 2. 提取特征与标签
 # ================================
-if "riscode" not in df.columns:
-    raise ValueError("数据中未找到名为 'riscode' 的列，请检查文件。")
+if "combined_iou_label_mask_sample_is__cur_loan_everm2mob12" not in df.columns:
+    raise ValueError("数据中未找到名为 'combined_iou_label_mask_sample_is__cur_loan_everm2mob12' 的列，请检查文件。")
 
-X = df.drop(columns=["riscode"])
-y = df["riscode"].map({10000: 1, 90000: 0})
+X = df.drop(columns=["combined_iou_label_mask_sample_is__cur_loan_everm2mob12"])
+y = df["combined_iou_label_mask_sample_is__cur_loan_everm2mob12"].map({1.0: 1, 0.0: 0})
 
 # ================================
 # 3. 自动检测并转换非数值列
@@ -81,8 +81,8 @@ print(classification_report(y_test, y_pred, digits=4))
 # ================================
 plt.figure(figsize=(6, 5))
 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
-            xticklabels=["10000(1)", "90000(0)"],
-            yticklabels=["10000(1)", "90000(0)"])
+            xticklabels=["overdue(1)", "normal(0)"],
+            yticklabels=["overdue(1)", "normal(0)"])
 plt.title("Confusion Matrix of XGBoost Classifier")
 plt.xlabel("Predicted Label")
 plt.ylabel("True Label")
